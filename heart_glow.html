@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chung Yên Chi Địa - Bản Hùng Ca 25 Trang</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background-color: #010003;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #fff;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #click-catcher {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            cursor: pointer;
+        }
+
+        .cinema-vignette {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            background: radial-gradient(circle at center, transparent 35%, rgba(2, 0, 8, 0.75) 80%, #000 100%);
+            box-shadow: inset 0 0 120px rgba(0,0,0,0.95);
+        }
+
+        #flash-overlay {
+            position: absolute;
+            inset: 0;
+            background: #ffffff;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+            transition: opacity 0.4s ease-out;
+        }
+
+        .bar-top, .bar-bottom {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 5vh;
+            background: #000;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .bar-top { top: 0; }
+        .bar-bottom { bottom: 0; }
+
+        /* Hiển thị số trang & thanh tiến trình */
+        #page-indicator {
+            position: absolute;
+            top: 6vh;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            text-align: center;
+            pointer-events: none;
+        }
+        #page-number {
+            font-size: 0.85rem;
+            letter-spacing: 4px;
+            font-weight: 600;
+            color: #ff5c98;
+            text-shadow: 0 0 10px rgba(255, 42, 122, 0.8);
+            margin-bottom: 6px;
+        }
+        #progress-bar-bg {
+            width: 180px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        #progress-bar-fill {
+            height: 100%;
+            width: 4%;
+            background: #ff2a7a;
+            box-shadow: 0 0 8px #ff2a7a;
+            transition: width 0.4s ease;
+        }
+
+        /* ================= KHUNG CHỮ: GỌN GÀNG CHỈ 2 - 3 DÒNG ================= */
+        #story-ui {
+            position: absolute;
+            bottom: 7.5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            width: 90%;
+            max-width: 720px;
+            pointer-events: none;
+            
+            background: rgba(12, 4, 20, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 20px 28px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 42, 122, 0.35);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.85), inset 0 0 15px rgba(255, 42, 122, 0.1);
+            text-align: center;
+            transition: all 0.4s ease;
+        }
+
+        #main-title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            background: linear-gradient(180deg, #ffffff 40%, #ff8cb8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 42, 122, 0.6);
+        }
+
+        #short-lines {
+            font-size: 1.05rem;
+            line-height: 1.85; /* Giãn dòng thoáng */
+            letter-spacing: 0.5px;
+            color: #fcecf8;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+        }
+
+        #tap-hint {
+            position: absolute;
+            bottom: 1.8vh;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.65);
+            text-transform: uppercase;
+            animation: pulseHint 1.8s infinite;
+            pointer-events: none;
+        }
+        @keyframes pulseHint {
+            0%, 100% { opacity: 0.3; transform: translateX(-50%) scale(0.96); }
+            50% { opacity: 0.95; transform: translateX(-50%) scale(1.03); }
+        }
+
+        /* Màn hình mở đầu */
+        #intro-screen {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, #1b002c, #000000);
+            z-index: 80;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+        #intro-screen h1 {
+            font-size: 2.3rem;
+            letter-spacing: 7px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #fff, #ff66a3, #ff1a75);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            padding: 0 20px;
+        }
+        #intro-screen p {
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            color: #d1a8e0;
+            text-transform: uppercase;
+            animation: pulseHint 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="click-catcher"></div>
+    <div class="bar-top"></div>
+    <div class="bar-bottom"></div>
+    <div class="cinema-vignette"></div>
+    <div id="flash-overlay"></div>
+
+    <!-- Chỉ số trang -->
+    <div id="page-indicator">
+        <div id="page-number">TRANG 01 / 25</div>
+        <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+    </div>
+
+    <div id="intro-screen">
+        <h1>CHUNG YÊN CHI ĐỊA</h1>
+        <p>✦ CHẠM VÀO ĐỂ BẬT NHẠC VÀ BƯỚC VÀO TRANG 1 ✦</p>
+    </div>
+
+    <!-- Hộp phụ đề gọn 2-3 dòng -->
+    <div id="story-ui">
+        <h2 id="main-title">Khởi Điểm</h2>
+        <div id="short-lines"></div>
+    </div>
+
+    <div id="tap-hint">Chạm để sang trang tiếp theo ✦</div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Nhạc nền: File "nhac.mp3" hoặc "nhac" trong cùng thư mục -->
+    <audio id="bg-audio" loop preload="auto">
+        <source src="nhac.mp3" type="audio/mpeg">
+        <source src="nhac" type="audio/mpeg">
+    </audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <script>
+        // ================= SCENE & CAMERA =================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x010003, 0.012);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1600);
+        camera.position.set(0, 30, 70);
+
+        let currentLookTarget = new THREE.Vector3(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const renderPass = new THREE.RenderPass(scene, camera);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.8, 0.45, 0.15);
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(renderPass);
+        composer.addPass(bloomPass);
+
+        // ================= CÁC TẦNG KHÔNG GIAN 3D =================
+        // 1. Phòng kín bê tông & Cát rơi
+        const gRoom = new THREE.Group();
+        const roomFrame = new THREE.Mesh(new THREE.BoxGeometry(22, 16, 22), new THREE.MeshBasicMaterial({ color: 0x331133, wireframe: true, transparent: true, opacity: 0.8 }));
+        gRoom.add(roomFrame);
+        const sandGeo = new THREE.BufferGeometry();
+        const sandPos = new Float32Array(3000 * 3);
+        for(let i=0; i<3000; i++) {
+            sandPos[i*3] = (Math.random()-0.5)*1.5; sandPos[i*3+1] = (Math.random()-0.5)*6; sandPos[i*3+2] = (Math.random()-0.5)*1.5;
+        }
+        sandGeo.setAttribute('position', new THREE.BufferAttribute(sandPos, 3));
+        const sandMesh = new THREE.Points(sandGeo, new THREE.PointsMaterial({ size: 0.08, color: 0xff1a40, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.9 }));
+        gRoom.add(sandMesh);
+        scene.add(gRoom);
+
+        // 2. Lửa Trư Diện
+        const gPig = new THREE.Group();
+        const fireGeo = new THREE.BufferGeometry();
+        const firePos = new Float32Array(4000 * 3);
+        for(let i=0; i<4000; i++) {
+            firePos[i*3] = (Math.random()-0.5)*6; firePos[i*3+1] = Math.random()*8; firePos[i*3+2] = (Math.random()-0.5)*6;
+        }
+        fireGeo.setAttribute('position', new THREE.BufferAttribute(firePos, 3));
+        const fireMesh = new THREE.Points(fireGeo, new THREE.PointsMaterial({ size: 0.12, color: 0xff4400, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gPig.add(fireMesh);
+        scene.add(gPig);
+
+        // 3. Tiếng Vọng hào quang
+        const gEcho = new THREE.Group();
+        const echoGeo = new THREE.BufferGeometry();
+        const echoCount = 12000;
+        const echoPos = new Float32Array(echoCount * 3);
+        const echoCols = new Float32Array(echoCount * 3);
+        const c1 = new THREE.Color('#ff5500'); const c2 = new THREE.Color('#00ffcc');
+        for(let i=0; i<echoCount; i++) {
+            const r = Math.pow(Math.random(), 1.5) * 20; const th = Math.random() * Math.PI * 2;
+            echoPos[i*3] = Math.cos(th)*r; echoPos[i*3+1] = (Math.random()-0.5)*8; echoPos[i*3+2] = Math.sin(th)*r;
+            const c = (i%2===0)?c1:c2;
+            echoCols[i*3] = c.r; echoCols[i*3+1] = c.g; echoCols[i*3+2] = c.b;
+        }
+        echoGeo.setAttribute('position', new THREE.BufferAttribute(echoPos, 3));
+        echoGeo.setAttribute('color', new THREE.BufferAttribute(echoCols, 3));
+        const echoMesh = new THREE.Points(echoGeo, new THREE.PointsMaterial({ size: 0.08, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gEcho.add(echoMesh);
+        scene.add(gEcho);
+
+        // 4. Bức tường khu Tây
+        const gWall = new THREE.Group();
+        for(let i=0; i<40; i++) {
+            const h = 6 + Math.random()*22;
+            const b = new THREE.Mesh(new THREE.BoxGeometry(2+Math.random()*2, h, 2+Math.random()*2), new THREE.MeshBasicMaterial({ color: 0x1b263b, wireframe: true, transparent: true, opacity: 0 }));
+            const a = Math.random()*Math.PI*2; const d = 12 + Math.random()*25;
+            b.position.set(Math.cos(a)*d, h/2 - 7, Math.sin(a)*d);
+            gWall.add(b);
+        }
+        scene.add(gWall);
+
+        // 5. Đại dương vong hồn
+        const gSouls = new THREE.Group();
+        const soulGeo = new THREE.BufferGeometry();
+        const soulPos = new Float32Array(8000 * 3);
+        for(let i=0; i<8000*3; i+=3) {
+            soulPos[i] = (Math.random()-0.5)*90; soulPos[i+1] = (Math.random()-0.5)*40; soulPos[i+2] = (Math.random()-0.5)*90;
+        }
+        soulGeo.setAttribute('position', new THREE.BufferAttribute(soulPos, 3));
+        const soulMesh = new THREE.Points(soulGeo, new THREE.PointsMaterial({ size: 0.065, color: 0x4a779d, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gSouls.add(soulMesh);
+        scene.add(gSouls);
+
+        // 6. Dư Niệm An vỡ vụn
+        const gAn = new THREE.Group();
+        const anGeo = new THREE.BufferGeometry();
+        const anCount = 9000;
+        const anPos = new Float32Array(anCount * 3);
+        for(let i=0; i<anCount; i++) {
+            const t = Math.PI * 2 * Math.random();
+            let x = 16 * Math.pow(Math.sin(t), 3);
+            let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+            let z = (Math.random()-0.5)*6;
+            anPos[i*3] = x * 0.32; anPos[i*3+1] = y * 0.32 + 4; anPos[i*3+2] = z * 0.32;
+        }
+        anGeo.setAttribute('position', new THREE.BufferAttribute(anPos, 3));
+        const anMesh = new THREE.Points(anGeo, new THREE.PointsMaterial({ size: 0.075, color: 0x9999bb, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gAn.add(anMesh);
+        scene.add(gAn);
+
+        // 7. Bạch Dương bảo vệ
+        const gSheep = new THREE.Group();
+        const sheepGeo = new THREE.BufferGeometry();
+        const sheepPos = new Float32Array(9000 * 3);
+        for(let i=0; i<9000; i++) {
+            const r = 8 + Math.random()*8; const th = Math.random()*Math.PI*2;
+            sheepPos[i*3] = Math.cos(th)*r; sheepPos[i*3+1] = (Math.random()-0.5)*2; sheepPos[i*3+2] = Math.sin(th)*r;
+        }
+        sheepGeo.setAttribute('position', new THREE.BufferAttribute(sheepPos, 3));
+        const sheepMesh = new THREE.Points(sheepGeo, new THREE.PointsMaterial({ size: 0.08, color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gSheep.add(sheepMesh);
+        scene.add(gSheep);
+
+        // 8. Thần Tính hoàng kim
+        const gGod = new THREE.Group();
+        const godGeo = new THREE.BufferGeometry();
+        const godPos = new Float32Array(14000 * 3);
+        for(let i=0; i<14000; i++) {
+            const r = Math.random()*24; const spin = r * 1.6;
+            godPos[i*3] = Math.cos(spin)*r; godPos[i*3+1] = (Math.random()-0.5)*3; godPos[i*3+2] = Math.sin(spin)*r;
+        }
+        godGeo.setAttribute('position', new THREE.BufferAttribute(godPos, 3));
+        const godMesh = new THREE.Points(godGeo, new THREE.PointsMaterial({ size: 0.07, color: 0xffd700, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gGod.add(godMesh);
+        scene.add(gGod);
+
+        // 9. Tam giác thời gian
+        const gTri = new THREE.Group();
+        const triGeo = new THREE.BufferGeometry();
+        const triPos = new Float32Array(9000 * 3);
+        const triCols = new Float32Array(9000 * 3);
+        const tC1 = new THREE.Color('#ffd700'); const tC2 = new THREE.Color('#ffffff'); const tC3 = new THREE.Color('#ff0055');
+        for(let i=0; i<9000; i++) {
+            const side = i % 3; const a = (side * 2 * Math.PI)/3; const r = 14 + (Math.random()-0.5)*4;
+            triPos[i*3] = Math.cos(a)*r + (Math.random()-0.5)*3; triPos[i*3+1] = (Math.random()-0.5)*6; triPos[i*3+2] = Math.sin(a)*r + (Math.random()-0.5)*3;
+            const c = (side===0)?tC1:((side===1)?tC2:tC3);
+            triCols[i*3]=c.r; triCols[i*3+1]=c.g; triCols[i*3+2]=c.b;
+        }
+        triGeo.setAttribute('position', new THREE.BufferAttribute(triPos, 3));
+        triGeo.setAttribute('color', new THREE.BufferAttribute(triCols, 3));
+        const triMesh = new THREE.Points(triGeo, new THREE.PointsMaterial({ size: 0.08, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gTri.add(triMesh);
+        scene.add(gTri);
+
+        // 10. Đại chiến Thiên Long
+        const gDragon = new THREE.Group();
+        const dCount = 18000;
+        const dGeo = new THREE.BufferGeometry();
+        const dPos = new Float32Array(dCount * 3);
+        const dSpeed = [];
+        for(let i=0; i<dCount; i++) {
+            dPos[i*3] = (Math.random()-0.5)*80; dPos[i*3+1] = (Math.random()-0.5)*50; dPos[i*3+2] = (Math.random()-0.5)*80;
+            dSpeed.push((Math.random()+0.5)*1.2);
+        }
+        dGeo.setAttribute('position', new THREE.BufferAttribute(dPos, 3));
+        const dMesh = new THREE.Points(dGeo, new THREE.PointsMaterial({ size: 0.1, color: 0x00ffff, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gDragon.add(dMesh);
+        scene.add(gDragon);
+
+        // 11. Thế Giới Mới tái sinh
+        const gNewWorld = new THREE.Group();
+        const nwGeo = new THREE.BufferGeometry();
+        const nwPos = new Float32Array(60*60*3);
+        let ptr = 0;
+        for(let i=0; i<60; i++) {
+            for(let j=0; j<60; j++) {
+                nwPos[ptr] = (i/60 - 0.5)*80; nwPos[ptr+1] = -5; nwPos[ptr+2] = (j/60 - 0.5)*80;
+                ptr += 3;
+            }
+        }
+        nwGeo.setAttribute('position', new THREE.BufferAttribute(nwPos, 3));
+        const nwMesh = new THREE.Points(nwGeo, new THREE.PointsMaterial({ size: 0.08, color: 0x22ff88, blending: THREE.AdditiveBlending, transparent: true, opacity: 0 }));
+        gNewWorld.add(nwMesh);
+        const sun = new THREE.Mesh(new THREE.SphereGeometry(3.5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffea00, transparent: true, opacity: 0 }));
+        sun.position.set(0, 12, -22);
+        gNewWorld.add(sun);
+        scene.add(gNewWorld);
+
+        // 12. Thư Người Gác Đêm
+        const gGuardian = new THREE.Group();
+        function createFinalLetter() {
+            const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 700;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = "rgba(10, 2, 16, 0.94)"; ctx.roundRect(10, 10, 1004, 680, 28); ctx.fill();
+            ctx.strokeStyle = "rgba(255, 42, 122, 0.85)"; ctx.lineWidth = 4; ctx.stroke();
+            ctx.font = "bold 40px 'Segoe UI', Arial"; ctx.fillStyle = "#ff4d88"; ctx.textAlign = "center";
+            ctx.fillText("BẢN GIAO HƯỞNG CUỐI CÙNG", 512, 120);
+            ctx.font = "28px 'Segoe UI', Arial"; ctx.fillStyle = "#ffffff";
+            ctx.fillText("Tôi dùng sự cô độc vĩnh hằng của chính mình,", 512, 280);
+            ctx.fillText("để đổi lấy cuộc đời trọn vẹn bình yên cho các bạn.", 512, 350);
+            ctx.font = "italic 30px 'Segoe UI', Arial"; ctx.fillStyle = "#ff99cc";
+            ctx.fillText("— Kẻ Lừa Đảo Tề Hạ —", 512, 520);
+            return new THREE.CanvasTexture(cv);
+        }
+        const letterMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 11), new THREE.MeshBasicMaterial({ map: createFinalLetter(), transparent: true, opacity: 0, side: THREE.DoubleSide }));
+        gGuardian.add(letterMesh);
+        scene.add(gGuardian);
+
+        // ================= CỐT TRUYỆN 25 TRANG (MỖI TRANG ĐÚNG 2-3 DÒNG) =================
+        const bookPages = [
+            {
+                title: "Thức Tỉnh Trong Bóng Tối",
+                text: "Tề Hạ mở mắt trong căn phòng kín không cửa sổ cùng 9 kẻ xa lạ.<br>Ký ức duy nhất còn sót lại là một lời hứa: 'Phải sống sót trở về gặp Dư Niệm An!'",
+                camPos: { x: 0, y: 15, z: 28 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 1.4, activeGroup: gRoom
+            },
+            {
+                title: "Bản Án Của Mã Diện",
+                text: "Giám sát viên mang mặt nạ Ngựa tuyên bố bản án tử:<br>'Trong 10 phút, 9 người phải tự tay giết chết 1 người, nếu không tất cả cùng chết!'",
+                camPos: { x: 0, y: 12, z: 22 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 1.6, activeGroup: gRoom
+            },
+            {
+                title: "Cú Lừa Đầu Tiên",
+                text: "Dùng chính máu tươi của mình bịt kín mắt Mã Diện, Tề Hạ cười ngạo nghễ:<br>'Kẻ duy nhất thừa thãi cần bị loại bỏ trong căn phòng này... chính là mày!'",
+                camPos: { x: 0, y: 10, z: 18 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 2.2, activeGroup: gRoom
+            },
+            {
+                title: "Chung Yên Chi Địa",
+                text: "Cánh cửa bật mở dẫn ra một thành phố đổ nát vô tận.<br>Cứ 10 ngày, một đợt thanh tẩy sẽ quét sạch mọi thứ, biến tất cả thành chuột bạch vĩnh viễn.",
+                camPos: { x: 0, y: 35, z: 65 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 1.8, activeGroup: gWall
+            },
+            {
+                title: "Quảng Trường Rực Lửa",
+                text: "Tại địa bàn khu Đông, Trư Diện treo Triệu Bác Sĩ lên giá chữ thập đẫm máu.<br>Tiếng cười man rợ của loài heo vang vọng khắp quảng trường.",
+                camPos: { x: 0, y: 14, z: 24 }, lookAt: { x: 0, y: 2, z: 0 }, bloom: 2.3, activeGroup: gPig
+            },
+            {
+                title: "Ván Cược Bằng Não Bộ",
+                text: "'Tao cược bằng chính bộ não của mình!'<br>Tề Hạ bước lên trước bàn xúc xắc xương người, đem sinh mạng đặt vào ván cược sinh tử.",
+                camPos: { x: 0, y: 8, z: 16 }, lookAt: { x: 0, y: 2, z: 0 }, bloom: 2.5, activeGroup: gPig
+            },
+            {
+                title: "Bẻ Gãy Gian Lận",
+                text: "Bằng thuật tâm lý và khả năng ghi nhớ từng nhịp rung của xúc xắc chì,<br>Tề Hạ lột trần trò bịp của Trư Diện, giải cứu Triệu Bác Sĩ trong gang tấc.",
+                camPos: { x: 0, y: 12, z: 22 }, lookAt: { x: 0, y: 2, z: 0 }, bloom: 2.0, activeGroup: gPig
+            },
+            {
+                title: "Nắm Đấm Và Nụ Cười",
+                text: "Kiều Gia Kình đem nắm đấm nguyện làm lá chắn vững chắc nhất.<br>Trần Tuấn Nam ngậm kẹo mút, cười cợt nhả nhưng thề không bao giờ bỏ rơi đồng đội.",
+                camPos: { x: 20, y: 10, z: 25 }, lookAt: { x: 0, y: 2, z: 0 }, bloom: 2.2, activeGroup: gEcho
+            },
+            {
+                title: "Tiếng Vọng Thức Tỉnh",
+                text: "Giữa lằn ranh cái chết, chấp niệm mãnh liệt đã phá vỡ giới hạn phàm nhân.<br>Năng lực siêu nhiên 'Tiếng Vọng' bùng nổ từ lời thề bảo vệ lẫn nhau!",
+                camPos: { x: 0, y: 15, z: 25 }, lookAt: { x: 0, y: 2, z: 0 }, bloom: 2.8, activeGroup: gEcho
+            },
+            {
+                title: "Bức Tường Khu Tây",
+                text: "Hội ngộ Sở Thiên Thu lạnh lùng và Hàn Nhất Mặc sắc sảo.<br>Từng giám sát viên Địa Chi kiêu ngạo lần lượt ngã gục dưới mưu lược của liên minh.",
+                camPos: { x: -20, y: 18, z: 30 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 1.8, activeGroup: gWall
+            },
+            {
+                title: "Vong Hồn Trôi Dạt",
+                text: "Càng đi sâu, sự thật tàn nhẫn nhất càng được bóc tách:<br>Tất cả mọi người ở đây... thực chất đều đã chết trong các tai nạn ở đời thực!",
+                camPos: { x: 0, y: 25, z: 60 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 1.3, activeGroup: gSouls
+            },
+            {
+                title: "Cõi Trung Gian",
+                text: "Nơi đây không phải bắt cóc, mà là cõi ngưng đọng giữa sinh và tử.<br>Những linh hồn bị giam cầm trong vòng lặp vô tận để làm trò tiêu khiển cho kẻ giật dây.",
+                camPos: { x: 0, y: 35, z: 50 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 1.2, activeGroup: gSouls
+            },
+            {
+                title: "Cú Sốc Mang Tên Niệm An",
+                text: "Nhát dao chí mạng giáng thẳng vào linh hồn Tề Hạ:<br>Người vợ hiền dịu Dư Niệm An... thực chất chưa từng tồn tại ở thế giới thực!",
+                camPos: { x: 0, y: 8, z: 18 }, lookAt: { x: 0, y: 4, z: 0 }, bloom: 1.4, activeGroup: gAn
+            },
+            {
+                title: "Mỏ Neo Tâm Lý",
+                text: "Đó chỉ là một ký ức giả do chính Tề Hạ quá khứ tự cấy vào đầu mình,<br>làm chiếc mỏ neo ngăn bản thân không phát điên giữa địa ngục trần gian.",
+                camPos: { x: 0, y: 6, z: 14 }, lookAt: { x: 0, y: 4, z: 0 }, bloom: 1.6, activeGroup: gAn
+            },
+            {
+                title: "Lý Do Để Sống",
+                text: "Quỳ gối trước ảo ảnh vỡ vụn, Tề Hạ không buông xuôi.<br>Hắn đứng dậy: Nếu Dư Niệm An là giả, thì mạng sống của anh em trước mắt là thật!",
+                camPos: { x: 0, y: 12, z: 22 }, lookAt: { x: 0, y: 4, z: 0 }, bloom: 2.0, activeGroup: gAn
+            },
+            {
+                title: "Bóng Ma Bạch Dương",
+                text: "Giám sát viên mang mặt nạ Dê Trắng (Bạch Dương) luôn âm thầm giúp đỡ.<br>Rải đạo cụ, đỡ đòn chí mạng... Bạch Dương rốt cuộc là ai?",
+                camPos: { x: 0, y: 16, z: 28 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 2.2, activeGroup: gSheep
+            },
+            {
+                title: "Bản Thể Trong Bóng Tối",
+                text: "Sự thật rúng động: Bạch Dương chính là một bản thể của Tề Hạ!<br>Hắn tự giáng mình làm Sinh Tiêu, âm thầm canh giữ bạn bè suốt nhiều thập kỷ.",
+                camPos: { x: 0, y: 12, z: 20 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 2.4, activeGroup: gSheep
+            },
+            {
+                title: "Thần Tề Hạ",
+                text: "Hàng chục năm trước, Tề Hạ từng đi đến tận cùng vòng lặp, bước vào cõi hư vô.<br>Hắn đắc chứng Thần Tính, trở thành thực thể vượt trên quy luật thời gian.",
+                camPos: { x: 0, y: 32, z: 45 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 2.8, activeGroup: gGod
+            },
+            {
+                title: "Quay Về 7 Năm Trước",
+                text: "Nếu phá hủy vùng đất, linh hồn bạn bè sẽ tan biến vĩnh viễn.<br>Thần Tề Hạ chọn quay về 7 năm trước, kiến tạo lại một ván cờ vĩ đại.",
+                camPos: { x: 0, y: 22, z: 32 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 2.5, activeGroup: gGod
+            },
+            {
+                title: "Chiến Dịch Gọng Kìm",
+                text: "Thần Tề Hạ giăng trận; Bạch Dương dọn sẵn lối đi trong bóng tối;<br>Tề Hạ phàm nhân làm mũi giáo không biết trước kịch bản, lừa gạt cả mắt thần Thiên Long!",
+                camPos: { x: 0, y: 18, z: 28 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 2.5, activeGroup: gTri
+            },
+            {
+                title: "Máu Nhuộm Bầu Trời",
+                text: "Trận quyết chiến cuối cùng bùng nổ! Kiều Gia Kình, Tuấn Nam liều chết mở đường.<br>Đứng trước Thiên Long tàn bạo, Tề Hạ thức tỉnh: 'Sinh Sinh Bất Tức'!",
+                camPos: { x: 0, y: 6, z: 22 }, lookAt: { x: 0, y: 0, z: -20 }, bloom: 3.2, activeGroup: gDragon
+            },
+            {
+                title: "Cú Lừa Cuối Cùng",
+                text: "Tề Hạ không giết Thiên Long. Hắn dùng trí tuệ đưa đối thủ vào mộng cảnh vĩnh viễn,<br>mượn sức mạnh giấc mộng để đan dệt nên một Thế Giới Mới!",
+                camPos: { x: 0, y: 8, z: 18 }, lookAt: { x: 0, y: 0, z: -10 }, bloom: 2.8, activeGroup: gDragon
+            },
+            {
+                title: "Thế Giới Mới Bình Yên",
+                text: "Nơi đó ngập tràn ánh nắng và tiếng cười trẻ thơ.<br>Bạn bè có lại thân xác, được sống cuộc đời bình dị: có sinh, lão, bệnh, tử bên gia đình.",
+                camPos: { x: 0, y: 12, z: 32 }, lookAt: { x: 0, y: 4, z: -10 }, bloom: 2.4, activeGroup: gNewWorld
+            },
+            {
+                title: "Sự Đánh Đổi Tàn Nhẫn",
+                text: "Vì họ đã chết ở đời thực, Thế Giới Mới chỉ là một 'lời nói dối hoàn hảo'.<br>Để duy trì nó, phải có một kẻ chấp nhận ở lại làm trụ cột chống đỡ.",
+                camPos: { x: 0, y: 8, z: 22 }, lookAt: { x: 0, y: 2, z: 0 }, bloom: 1.8, activeGroup: gNewWorld
+            },
+            {
+                title: "Người Gác Đêm Vĩnh Cửu",
+                text: "Tề Hạ chọn ở lại cõi hoang tàn vĩnh viễn bên ảo ảnh Dư Niệm An.<br>Dùng sự cô độc trọn kiếp của mình... đổi lấy hạnh phúc cho người hắn yêu thương ❤️",
+                camPos: { x: 0, y: 0, z: 15 }, lookAt: { x: 0, y: 0, z: 0 }, bloom: 2.2, activeGroup: gGuardian
+            }
+        ];
+
+        const allGroups = [gRoom, gPig, gEcho, gWall, gSouls, gAn, gSheep, gGod, gTri, gDragon, gNewWorld, gGuardian];
+        function fadeGroup(group, targetOpacity) {
+            group.traverse((child) => {
+                if (child.material) {
+                    new TWEEN.Tween(child.material).to({ opacity: targetOpacity }, 1000).easing(TWEEN.Easing.Cubic.Out).start();
+                }
+            });
+        }
+
+        let currentPageIndex = 0;
+        let isStarted = false;
+
+        const audio = document.getElementById('bg-audio');
+        const clickCatcher = document.getElementById('click-catcher');
+        const introScreen = document.getElementById('intro-screen');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const pageNumber = document.getElementById('page-number');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const mainTitle = document.getElementById('main-title');
+        const shortLines = document.getElementById('short-lines');
+
+        function renderPage() {
+            if (audio.paused) {
+                audio.play().catch(e => console.log("Audio play error:", e));
+            }
+
+            if (!isStarted) {
+                isStarted = true;
+                introScreen.style.opacity = '0';
+                setTimeout(() => introScreen.remove(), 800);
+            } else {
+                currentPageIndex = (currentPageIndex + 1) % bookPages.length;
+            }
+
+            const page = bookPages[currentPageIndex];
+
+            // Cập nhật số trang & thanh đo
+            const pNum = currentPageIndex + 1;
+            pageNumber.innerText = `TRANG ${pNum < 10 ? '0' + pNum : pNum} / ${bookPages.length}`;
+            progressBarFill.style.width = `${(pNum / bookPages.length) * 100}%`;
+
+            // Chớp sáng nhẹ
+            flashOverlay.style.opacity = '0.7';
+            setTimeout(() => { flashOverlay.style.opacity = '0'; }, 300);
+
+            // Bật tắt các chiều không gian 3D
+            allGroups.forEach(g => {
+                if (g === page.activeGroup) fadeGroup(g, 1);
+                else fadeGroup(g, 0);
+            });
+
+            // Lướt camera
+            new TWEEN.Tween(camera.position).to(page.camPos, 2200).easing(TWEEN.Easing.Cubic.InOut).start();
+            new TWEEN.Tween(currentLookTarget).to(page.lookAt, 2200).easing(TWEEN.Easing.Cubic.InOut).start();
+            new TWEEN.Tween(bloomPass).to({ strength: page.bloom }, 1800).easing(TWEEN.Easing.Cubic.Out).start();
+
+            // Hiển thị chữ 2-3 dòng
+            mainTitle.style.opacity = '0';
+            shortLines.style.opacity = '0';
+            setTimeout(() => {
+                mainTitle.innerText = page.title;
+                shortLines.innerHTML = page.text;
+                mainTitle.style.opacity = '1';
+                shortLines.style.opacity = '1';
+            }, 300);
+        }
+
+        clickCatcher.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            renderPage();
+        });
+
+        // ================= VÒNG LẶP RENDER =================
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            const time = clock.getElapsedTime();
+            camera.lookAt(currentLookTarget);
+
+            if (sandMesh.material.opacity > 0.05) {
+                const sPos = sandGeo.attributes.position;
+                for(let i=0; i<3000; i++) {
+                    let y = sPos.getY(i) - 0.04;
+                    if(y < -3) y = 3;
+                    sPos.setY(i, y);
+                }
+                sandGeo.attributes.position.needsUpdate = true;
+                roomFrame.rotation.y = time * 0.04;
+            }
+
+            if (fireMesh.material.opacity > 0.05) {
+                const fPos = fireGeo.attributes.position;
+                for(let i=0; i<4000; i++) {
+                    let y = fPos.getY(i) + 0.08;
+                    if(y > 8) y = 0;
+                    fPos.setY(i, y);
+                }
+                fireGeo.attributes.position.needsUpdate = true;
+                gPig.rotation.y = time * 0.06;
+            }
+
+            if (echoMesh.material.opacity > 0.05) gEcho.rotation.y = time * 0.12;
+            if (gWall.children[0].material.opacity > 0.05) gWall.rotation.y = time * 0.02;
+            if (soulMesh.material.opacity > 0.05) gSouls.rotation.y = time * 0.03;
+
+            if (anMesh.material.opacity > 0.05) {
+                const beat = 1 + Math.sin(time * 2.5) * 0.06;
+                gAn.scale.set(beat, beat, beat);
+                gAn.rotation.y = Math.sin(time * 0.5) * 0.2;
+            }
+
+            if (sheepMesh.material.opacity > 0.05) gSheep.rotation.y = -time * 0.15;
+            if (godMesh.material.opacity > 0.05) gGod.rotation.y = time * 0.18;
+            if (triMesh.material.opacity > 0.05) gTri.rotation.y = time * 0.12;
+
+            if (dMesh.material.opacity > 0.05) {
+                const dPos = dGeo.attributes.position;
+                for(let i=0; i<dCount; i++) {
+                    let z = dPos.getZ(i) + dSpeed[i] * 2.0;
+                    if(z > 40) z = -40;
+                    dPos.setZ(i, z);
+                }
+                dGeo.attributes.position.needsUpdate = true;
+                gDragon.rotation.z = time * 0.05;
+            }
+
+            if (nwMesh.material.opacity > 0.05) {
+                const nwPos = nwGeo.attributes.position;
+                let p = 0;
+                for(let i=0; i<60; i++) {
+                    for(let j=0; j<60; j++) {
+                        const wave = Math.sin(i*0.2 + time*2) * Math.cos(j*0.2 + time*2) * 0.8;
+                        nwPos.setY(p/3, -5 + wave);
+                        p += 3;
+                    }
+                }
+                nwGeo.attributes.position.needsUpdate = true;
+            }
+
+            if (letterMesh.material.opacity > 0.05) {
+                letterMesh.position.y = Math.sin(time * 1.5) * 0.4;
+                letterMesh.rotation.y = Math.sin(time * 0.6) * 0.06;
+            }
+
+            composer.render();
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
