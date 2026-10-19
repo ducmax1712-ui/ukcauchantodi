@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dành riêng cho Phương ✨</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #05020a;
+            font-family: 'Quicksand', sans-serif;
+            color: #fff;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Nền sao vũ trụ */
+        .stars-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        /* Khung hiển thị từng bước */
+        .card {
+            position: absolute;
+            width: 90%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 24px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9) translateY(20px);
+            z-index: 2;
+        }
+
+        .card.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1) translateY(0);
+        }
+
+        h2 {
+            font-size: 1.55rem;
+            color: #ff9ff3;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        p.desc {
+            font-size: 0.95rem;
+            color: #dcdde1;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* Bước 1: Xác minh danh tính */
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #feca57;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .input-text {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            font-family: 'Quicksand', sans-serif;
+            text-align: center;
+        }
+
+        .input-text:focus {
+            border-color: #ff7675;
+            box-shadow: 0 0 12px rgba(255, 118, 117, 0.5);
+        }
+
+        .btn-confirm {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(45deg, #ff4757, #ff6b81);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+            margin-top: 10px;
+        }
+
+        .hint-btn {
+            font-size: 0.85rem;
+            color: #feca57;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 15px;
+            display: inline-block;
+        }
+
+        /* Bước 2: Nút né */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            min-height: 70px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-family: 'Quicksand', sans-serif;
+        }
+
+        .btn-yes {
+            background: linear-gradient(45deg, #ff4757, #ff6b81);
+            color: white;
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.5);
+        }
+
+        .btn-no {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ddd;
+            position: absolute;
+            right: 20px;
+            transition: all 0.15s ease-out;
+        }
+
+        /* Bước 3: Nhấn giữ */
+        .hold-circle {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px dashed #ff9ff3;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.6rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .hold-circle.holding {
+            transform: scale(0.95);
+            border-style: solid;
+            box-shadow: 0 0 30px #ff69b4;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff7675, #feca57);
+            transition: width 0.1s linear;
+        }
+
+        /* Bước 4: Thư */
+        .letter-content {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #ffeaa7;
+            text-align: left;
+            min-height: 140px;
+            white-space: pre-line;
+            text-shadow: 0 0 8px rgba(255, 234, 167, 0.2);
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2rem;
+            background: #fff;
+            animation: blink 0.7s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+        .btn-surprise {
+            margin-top: 20px;
+            background: linear-gradient(45deg, #f368e0, #ff4757, #feca57);
+            color: white;
+            border: none;
+            padding: 13px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 0 25px rgba(255, 71, 87, 0.6);
+            font-family: 'Quicksand', sans-serif;
+            animation: pulseGlow 1.5s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+
+        /* Bước 5: 3D WebGL */
+        #webglCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: none;
+            cursor: grab;
+        }
+
+        .final-overlay {
+            position: fixed;
+            top: 8%;
+            width: 100%;
+            text-align: center;
+            z-index: 15;
+            display: none;
+            pointer-events: none;
+        }
+
+        .final-overlay h1 {
+            font-family: 'Dancing Script', cursive;
+            font-size: 3.2rem;
+            color: #ffd166;
+            text-shadow: 0 0 15px rgba(255, 209, 102, 0.9), 0 0 35px #ff4757;
+        }
+
+        .final-overlay p {
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            color: #f3a683;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        /* Nút âm lượng */
+        .music-toggle {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Trình nạp nhạc: Tự động chạy link trực tuyến (hoặc file nhac.mp3 nếu có) -->
+    <div class="music-toggle" onclick="toggleMusic()">🔊</div>
+    <audio id="audio" loop preload="auto" playsinline>
+        <source src="nhac.mp3" type="audio/mpeg">
+        <source src="https://assets.mixkit.co/music/preview/mixkit-romantic-sunshine-689.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="stars-bg" id="starsBg"></div>
+
+    <!-- BƯỚC 1: XÁC MINH DANH TÍNH CHỈ DÀNH CHO PHƯƠNG -->
+    <div class="card active" id="stage1">
+        <div style="font-size: 2.8rem; margin-bottom: 8px;">🔒</div>
+        <h2>Vùng Riêng Tư</h2>
+        <p class="desc">Trang web này đã được mã hóa và chỉ dành riêng cho một người duy nhất.</p>
+
+        <div class="input-group">
+            <label>Cậu tên là gì?</label>
+            <input type="text" class="input-text" id="nameInput" placeholder="Nhập tên của cậu...">
+        </div>
+
+        <div class="input-group">
+            <label>Mật mã bí mật (4 số)</label>
+            <input type="password" class="input-text" id="passInput" maxlength="4" placeholder="••••">
+        </div>
+
+        <button class="btn-confirm" onclick="verifyIdentity()">Mở Khóa Trang Web</button>
+        <div class="hint-btn" onclick="alert('Gợi ý: Cậu tên Phương và mật mã là ngày sinh nhật 0612 nha má :>>')">💡 Xem gợi ý</div>
+        <p id="errorMsg" style="color: #ff7675; font-size: 0.85rem; margin-top: 10px; height: 18px;"></p>
+    </div>
+
+    <!-- BƯỚC 2: CÂU HỎI TRÊU ĐÙA -->
+    <div class="card" id="stage2">
+        <div style="font-size: 2.8rem; margin-bottom: 8px;">👀</div>
+        <h2>Khảo sát nhanh!</h2>
+        <p class="desc">Bấm thật lòng đi nha, cấm quạo á!</p>
+        <p style="font-size: 1.2rem; font-weight: bold; color: #feca57; margin-bottom: 25px;">
+            "Chan tớ đi cậu? 🥺"
+        </p>
+
+        <div class="btn-group">
+            <button class="btn btn-yes" onclick="goToStage(3)">Uh</button>
+            <button class="btn btn-no" id="btnNo" onmouseover="dodgeBtn()" onclick="dodgeBtn()">????</button>
+        </div>
+    </div>
+
+    <!-- BƯỚC 3: NHẤN GIỮ TRÁI TIM -->
+    <div class="card" id="stage3">
+        <h2>Mở Khóa Tấm Lòng ✨</h2>
+        <p class="desc">Chạm và giữ chặt ngón tay vào trái tim trong 3 giây để mở quà nè!</p>
+
+        <div class="hold-circle" id="holdBtn">💖</div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p id="holdText" style="margin-top: 10px; font-size: 0.9rem; color: #ff9ff3;">Chạm và giữ trái tim...</p>
+    </div>
+
+    <!-- BƯỚC 4: BỨC THƯ TÂM TÌNH -->
+    <div class="card" id="stage4">
+        <h2 style="font-size: 1.35rem; color: #ff7675; margin-bottom: 15px; line-height: 1.4;">
+            Gửi người đặc biệt quan trọng thứ 2 trong lòng tao ❤️
+        </h2>
+        
+        <div class="letter-content" id="letterText"></div>
+        <span class="cursor" id="cursor"></span>
+
+        <p style="margin-top: 20px; font-size: 0.85rem; color: #a4b0be; text-align: right;">
+            From: Đẹp trai số 1 vũ trụ :>>
+        </p>
+
+        <button class="btn-surprise" id="btnSurprise" onclick="launch3DUniverse()">
+            Món quà cuối cùng nè, bấm vào đi! ✨
+        </button>
+    </div>
+
+    <!-- BƯỚC 5: KHÔNG GIAN 3D VŨ TRỤ -->
+    <canvas id="webglCanvas"></canvas>
+    <div class="final-overlay" id="finalOverlay">
+        <h1>Happy 20/10 Phương nha ✨</h1>
+        <p>Quẹt màn hình để xoay không gian 3D nhé</p>
+    </div>
+
+    <script>
+        /* ================= 1. NỀN SAO BAN ĐẦU ================= */
+        const starsBg = document.getElementById('starsBg');
+        for (let i = 0; i < 70; i++) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            star.style.width = Math.random() * 3 + 1 + 'px';
+            star.style.height = star.style.width;
+            star.style.left = Math.random() * 100 + 'vw';
+            star.style.top = Math.random() * 100 + 'vh';
+            star.style.setProperty('--duration', Math.random() * 3 + 2 + 's');
+            starsBg.appendChild(star);
+        }
+
+        /* ================= 2. QUẢN LÝ ÂM THANH ================= */
+        const audio = document.getElementById('audio');
+
+        function startMusic() {
+            if (audio && audio.paused) {
+                audio.play().then(() => {
+                    document.querySelector('.music-toggle').innerText = "🔊";
+                }).catch(() => {});
+            }
+        }
+
+        ['click', 'touchstart', 'touchend', 'keydown'].forEach(evt => {
+            window.addEventListener(evt, startMusic, { passive: true });
+        });
+
+        function toggleMusic() {
+            if (audio.paused) {
+                audio.play();
+                document.querySelector('.music-toggle').innerText = "🔊";
+            } else {
+                audio.pause();
+                document.querySelector('.music-toggle').innerText = "🔇";
+            }
+        }
+
+        /* ================= 3. KIỂM TRA DANH TÍNH ================= */
+        function verifyIdentity() {
+            startMusic();
+            const name = document.getElementById('nameInput').value.trim().toLowerCase();
+            const pass = document.getElementById('passInput').value.trim();
+            const err = document.getElementById('errorMsg');
+
+            if ((name === "phương" || name === "phuong") && pass === "0612") {
+                err.innerText = "";
+                goToStage(2);
+            } else if (name !== "phương" && name !== "phuong") {
+                err.innerText = "Trang web này không dành cho bạn rồi! 🚫";
+            } else {
+                err.innerText = "Sai mật khẩu rồi, bấm xem gợi ý đi má!";
+            }
+        }
+
+        function goToStage(num) {
+            startMusic();
+            document.querySelectorAll('.card').forEach(el => el.classList.remove('active'));
+            setTimeout(() => {
+                document.getElementById('stage' + num).classList.add('active');
+            }, 300);
+
+            if (num === 4) {
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                startTypewriter();
+            }
+        }
+
+        /* ================= 4. NÚT NÉ ================= */
+        const btnNo = document.getElementById('btnNo');
+        function dodgeBtn() {
+            startMusic();
+            const x = Math.random() * 200 - 100;
+            const y = Math.random() * 100 - 50;
+            btnNo.style.transform = `translate(${x}px, ${y}px)`;
+        }
+
+        /* ================= 5. GIỮ TRÁI TIM 3 GIÂY ================= */
+        const holdBtn = document.getElementById('holdBtn');
+        const progressFill = document.getElementById('progressFill');
+        const holdText = document.getElementById('holdText');
+        let holdInterval;
+        let progress = 0;
+
+        function startHold(e) {
+            e.preventDefault();
+            startMusic();
+            holdBtn.classList.add('holding');
+            holdInterval = setInterval(() => {
+                progress += 3.5;
+                progressFill.style.width = progress + '%';
+                holdText.innerText = `Đang tích năng lượng... ${Math.min(100, Math.round(progress))}%`;
+
+                if (progress >= 100) {
+                    clearInterval(holdInterval);
+                    goToStage(4);
+                }
+            }, 100);
+        }
+
+        function endHold() {
+            holdBtn.classList.remove('holding');
+            clearInterval(holdInterval);
+            if (progress < 100) {
+                progress = 0;
+                progressFill.style.width = '0%';
+                holdText.innerText = "Giữ lâu hơn chút nữa nha!";
+            }
+        }
+
+        holdBtn.addEventListener('mousedown', startHold);
+        holdBtn.addEventListener('mouseup', endHold);
+        holdBtn.addEventListener('touchstart', startHold);
+        holdBtn.addEventListener('touchend', endHold);
+
+        /* ================= 6. MÁY CHỮ TÂM TÌNH ================= */
+        const myLetter = `Tao không biết tặng mày cái gì vào ngày lễ của mày và tao cũng không dám tặng quà vì mày doạ block tao (sợ vcut ạ :>>)
+
+Nên tao cũng lên mạng đua đòi viết code để tặng m, ờm thì tao dạo này nhạt lắm không biết chúc sao cho mày vui :<<
+
+Nhưng mà Phương nè, chúc mày có 1 ngày 20/10 vui vẻ nha! ✨`;
+
+        function startTypewriter() {
+            let i = 0;
+            const target = document.getElementById('letterText');
+            target.innerHTML = "";
+            const timer = setInterval(() => {
+                if (i < myLetter.length) {
+                    target.innerHTML += myLetter.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                    document.getElementById('cursor').style.display = 'none';
+                    document.getElementById('btnSurprise').style.display = 'inline-block';
+                }
+            }, 55);
+        }
+
+        /* ================= 7. MÀN KHÔNG GIAN 3D ================= */
+        function launch3DUniverse() {
+            const stage4 = document.getElementById('stage4');
+            stage4.style.transform = "scale(0)";
+            stage4.style.opacity = "0";
+
+            setTimeout(() => {
+                stage4.style.display = 'none';
+                document.getElementById('starsBg').style.display = 'none';
+
+                const canvas = document.getElementById('webglCanvas');
+                const overlay = document.getElementById('finalOverlay');
+                canvas.style.display = 'block';
+                overlay.style.display = 'block';
+
+                initThreeUniverse();
+            }, 500);
+        }
+
+        function initThreeUniverse() {
+            const canvas = document.getElementById('webglCanvas');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x05020a, 0.002);
+
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 85;
+
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            const heartGeometry = new THREE.BufferGeometry();
+            const heartCount = 2800;
+            const positions = new Float32Array(heartCount * 3);
+            const colors = new Float32Array(heartCount * 3);
+
+            const color1 = new THREE.Color(0xff2a7a);
+            const color2 = new THREE.Color(0xffd166);
+
+            for (let i = 0; i < heartCount; i++) {
+                const t = Math.PI * (Math.random() * 2 - 1);
+                const u = Math.PI * (Math.random() * 2 - 1);
+
+                let x = 16 * Math.pow(Math.sin(t), 3);
+                let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                let z = u * 4.5 * Math.sin(t);
+
+                const spread = Math.random() * 0.25 + 0.85;
+                positions[i * 3] = x * spread * 1.5;
+                positions[i * 3 + 1] = y * spread * 1.5;
+                positions[i * 3 + 2] = z * spread * 1.5;
+
+                const mixedColor = color1.clone().lerp(color2, Math.random());
+                colors[i * 3] = mixedColor.r;
+                colors[i * 3 + 1] = mixedColor.g;
+                colors[i * 3 + 2] = mixedColor.b;
+            }
+
+            heartGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            heartGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const pMaterial = new THREE.PointsMaterial({
+                size: 1.3,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const heartParticles = new THREE.Points(heartGeometry, pMaterial);
+            scene.add(heartParticles);
+
+            const galaxyGeo = new THREE.BufferGeometry();
+            const galaxyCount = 1500;
+            const galaxyPos = new Float32Array(galaxyCount * 3);
+            for(let i = 0; i < galaxyCount * 3; i++) {
+                galaxyPos[i] = (Math.random() - 0.5) * 350;
+            }
+            galaxyGeo.setAttribute('position', new THREE.BufferAttribute(galaxyPos, 3));
+            const galaxyMat = new THREE.PointsMaterial({
+                size: 0.9,
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.5,
+                blending: THREE.AdditiveBlending
+            });
+            scene.add(new THREE.Points(galaxyGeo, galaxyMat));
+
+            let mouseX = 0, mouseY = 0;
+            let targetX = 0, targetY = 0;
+
+            window.addEventListener('pointermove', (e) => {
+                mouseX = (e.clientX - window.innerWidth / 2) * 0.0012;
+                mouseY = (e.clientY - window.innerHeight / 2) * 0.0012;
+            });
+
+            window.addEventListener('pointerdown', () => {
+                confetti({ particleCount: 70, spread: 90, origin: { y: 0.5 } });
+            });
+
+            let clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const time = clock.getElapsedTime();
+                const beat = 1 + Math.sin(time * 3.5) * 0.06 + Math.pow(Math.sin(time * 7), 4) * 0.04;
+                heartParticles.scale.set(beat, beat, beat);
+
+                heartParticles.rotation.y = time * 0.35;
+
+                targetX += (mouseX - targetX) * 0.05;
+                targetY += (mouseY - targetY) * 0.05;
+                camera.position.x = targetX * 60;
+                camera.position.y = -targetY * 60;
+                camera.lookAt(scene.position);
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+    </script>
+</body>
+</html>
